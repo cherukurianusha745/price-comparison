@@ -63,8 +63,13 @@
 #     picture = serializers.URLField(required=False, allow_blank=True)
 #     sub = serializers.CharField()
 # users/serializers.py
+# users/serializers.py
 from rest_framework import serializers
-from django.contrib.auth.models import User
+from django.contrib.auth import get_user_model  # Use this to get the custom User model
+from users.models import UserProfile  # Import UserProfile if needed
+
+# Get your custom User model
+User = get_user_model()
 
 class RegisterSerializer(serializers.ModelSerializer):
     password = serializers.CharField(write_only=True)
@@ -72,7 +77,7 @@ class RegisterSerializer(serializers.ModelSerializer):
     role = serializers.CharField(required=False, default='viewer')
     
     class Meta:
-        model = User
+        model = User  # Now this references your custom User model
         fields = ['username', 'email', 'password', 'password2', 'role']
     
     def validate(self, data):
@@ -81,11 +86,13 @@ class RegisterSerializer(serializers.ModelSerializer):
                 'password': 'Passwords do not match'
             })
         
+        # Check if email already exists using custom User model
         if User.objects.filter(email=data['email']).exists():
             raise serializers.ValidationError({
                 'email': 'Email already exists'
             })
         
+        # Check if username already exists using custom User model
         if User.objects.filter(username=data['username']).exists():
             raise serializers.ValidationError({
                 'username': 'Username already exists'
@@ -95,11 +102,19 @@ class RegisterSerializer(serializers.ModelSerializer):
     
     def create(self, validated_data):
         validated_data.pop('password2')
-        validated_data.pop('role')  # Handle role separately if needed
+        role = validated_data.pop('role', 'viewer')  # Remove role from validated data
         
+        # Create user using custom User model
         user = User.objects.create_user(
             username=validated_data['username'],
             email=validated_data['email'],
             password=validated_data['password']
         )
+        
+        # Create UserProfile with role
+        UserProfile.objects.create(
+            user=user,
+            role=role
+        )
+        
         return user

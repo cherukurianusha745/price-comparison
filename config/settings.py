@@ -7,8 +7,8 @@ DEBUG = True
 ALLOWED_HOSTS = ['localhost', '127.0.0.1']
 
 # Google OAuth - Replace with your actual client ID
-GOOGLE_CLIENT_ID = 'YOUR_GOOGLE_CLIENT_ID.apps.googleusercontent.com'
-GOOGLE_CLIENT_SECRET = 'YOUR_GOOGLE_CLIENT_SECRET'  # Add this
+GOOGLE_CLIENT_ID = '456375997142-16vs1sp1hfate2apnps3v10jjluj370p.apps.googleusercontent.com'
+GOOGLE_CLIENT_SECRET = '****2eZF'  # Add this
 
 # Application definition
 INSTALLED_APPS = [
@@ -23,8 +23,9 @@ INSTALLED_APPS = [
     'corsheaders',
     'backend',
     'users',
+    'password_reset',
 ]
-
+AUTH_USER_MODEL = 'users.User'
 MIDDLEWARE = [
     'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
@@ -106,7 +107,14 @@ CSRF_TRUSTED_ORIGINS = [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
 ]
-
+# settings.py - Email Configuration
+EMAIL_BACKEND = 'django.core.mail.backends.console.EmailBackend'
+EMAIL_HOST = 'smtp.gmail.com'
+EMAIL_PORT = 587
+EMAIL_USE_TLS = True
+EMAIL_HOST_USER = '239y1a0541@ksrmce.ac.in'  # Replace with your Gmail
+EMAIL_HOST_PASSWORD = '239y1a0541@ksrmce.ac.in'  # Replace with your Gmail App Password
+DEFAULT_FROM_EMAIL = '239y1a0541@ksrmce.ac.in'
 # REST Framework settings
 REST_FRAMEWORK = {
     'DEFAULT_PERMISSION_CLASSES': [

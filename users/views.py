@@ -128,13 +128,18 @@
 #         )
 # users/views.py
 # users/views.py
+# users/views.py
+# users/views.py
 from django.http import JsonResponse
 from django.views.decorators.csrf import csrf_exempt
 from django.views.decorators.http import require_http_methods
-from django.contrib.auth.models import User
 from django.contrib.auth import authenticate, login as auth_login
+from django.contrib.auth import get_user_model
 import json
 import re
+
+# Get your custom User model
+User = get_user_model()
 
 # Google Login View
 @csrf_exempt
@@ -152,7 +157,7 @@ def google_login(request):
         if not email:
             return JsonResponse({'error': 'Email is required'}, status=400)
         
-        # Check if user exists, if not create one
+        # Check if user exists, if not create one - using custom User model
         user, created = User.objects.get_or_create(
             email=email,
             defaults={
@@ -163,9 +168,18 @@ def google_login(request):
         
         if created:
             print(f"New user created via Google: {email}")
+            # Profile will be created automatically by signal
         
         # Log the user in
         auth_login(request, user)
+        
+        # Get role from UserProfile if it exists
+        role = 'viewer'
+        try:
+            if hasattr(user, 'profile'):
+                role = user.profile.role
+        except:
+            pass
         
         return JsonResponse({
             'message': 'Google login successful',
@@ -173,7 +187,7 @@ def google_login(request):
             'email': user.email,
             'user_id': user.id,
             'is_admin': user.is_superuser,
-            'role': 'admin' if user.is_superuser else 'viewer',
+            'role': 'admin' if user.is_superuser else role,
             'is_new_user': created
         }, status=200)
         
@@ -184,7 +198,7 @@ def google_login(request):
         return JsonResponse({'error': str(e)}, status=500)
 
 
-# Register View
+# Register View - UPDATED with proper profile handling
 @csrf_exempt
 @require_http_methods(["POST"])
 def register(request):
@@ -227,12 +241,24 @@ def register(request):
         if errors:
             return JsonResponse({'errors': errors}, status=400)
         
-        # Create user
+        # Create user using custom User model
         user = User.objects.create_user(
             username=username,
             email=email,
             password=password
         )
+        
+        # Create or update profile using get_or_create to avoid duplicates
+        from users.models import UserProfile
+        profile, created = UserProfile.objects.get_or_create(
+            user=user,
+            defaults={'role': role}
+        )
+        
+        # If profile already existed but role is different, update it
+        if not created and profile.role != role:
+            profile.role = role
+            profile.save()
         
         return JsonResponse({
             'message': 'Registration successful',
@@ -240,7 +266,7 @@ def register(request):
                 'username': user.username,
                 'email': user.email,
                 'user_id': user.id,
-                'role': role
+                'role': profile.role
             }
         }, status=201)
         
@@ -274,11 +300,20 @@ def login(request):
         if errors:
             return JsonResponse({'errors': errors}, status=400)
         
-        # Authenticate user
+        # Authenticate user - works with custom User model
         user = authenticate(request, username=username, password=password)
         
         if user is not None:
             auth_login(request, user)
+            
+            # Get role from UserProfile
+            role = 'viewer'
+            try:
+                if hasattr(user, 'profile'):
+                    role = user.profile.role
+            except:
+                pass
+            
             return JsonResponse({
                 'message': 'Login successful',
                 'user': {
@@ -286,7 +321,7 @@ def login(request):
                     'email': user.email,
                     'user_id': user.id,
                     'is_admin': user.is_superuser,
-                    'role': 'admin' if user.is_superuser else 'viewer'
+                    'role': 'admin' if user.is_superuser else role
                 }
             }, status=200)
         else:

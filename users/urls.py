@@ -9,7 +9,14 @@
 # users/urls.py
 # users/urls.py
 # users/urls.py
-from django.urls import path
+from django.contrib import admin
+from django.urls import path, include
+
+urlpatterns = [
+    path('admin/', admin.site.urls),
+    path('api/', include('users.urls')),  # This includes all /api/ routes from users app
+]# users/urls.py
+from django.urls import path, include
 from . import views
 
 urlpatterns = [
@@ -18,4 +25,5 @@ urlpatterns = [
     path('login/', views.login, name='login'),
     path('check-user/', views.check_user_exists, name='check-user'),
     path('test/', views.test, name='test'),
+    path('password-reset/', include('password_reset.urls')),
 ]

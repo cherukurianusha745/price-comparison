@@ -95,10 +95,23 @@
 #     except UserProfile.DoesNotExist:
 #         UserProfile.objects.create(user=instance)
 # users/models.py
+# users/models.py
+# users/models.py
 from django.db import models
-from django.contrib.auth.models import User
+from django.contrib.auth.models import AbstractUser
 from django.db.models.signals import post_save
 from django.dispatch import receiver
+import random
+import string
+from datetime import datetime, timedelta
+
+class User(AbstractUser):
+    # Your existing user fields
+    phone = models.CharField(max_length=15, blank=True)
+    country = models.CharField(max_length=100, blank=True)
+    
+    def __str__(self):
+        return self.username
 
 class UserProfile(models.Model):
     ROLE_CHOICES = [
@@ -115,14 +128,43 @@ class UserProfile(models.Model):
     def __str__(self):
         return f"{self.user.username} - {self.role}"
 
+class PasswordResetOTP(models.Model):
+    user = models.ForeignKey(User, on_delete=models.CASCADE, null=True, blank=True)
+    email = models.EmailField()
+    otp = models.CharField(max_length=6)
+    created_at = models.DateTimeField(auto_now_add=True)
+    is_used = models.BooleanField(default=False)
+    
+    def is_valid(self):
+        if self.is_used:
+            return False
+        expiry_time = self.created_at + timedelta(minutes=5)
+        return datetime.now() <= expiry_time
+    
+    @staticmethod
+    def generate_otp():
+        return ''.join(random.choices(string.digits, k=6))
+    
+    class Meta:
+        ordering = ['-created_at']
+    
+    def __str__(self):
+        return f"{self.email} - {self.otp}"
+
+# Signals for UserProfile - Updated to avoid duplicates
 @receiver(post_save, sender=User)
 def create_user_profile(sender, instance, created, **kwargs):
+    """Create UserProfile when a new user is created"""
     if created:
+        # Use get_or_create to avoid duplicates
         UserProfile.objects.get_or_create(user=instance)
 
 @receiver(post_save, sender=User)
 def save_user_profile(sender, instance, **kwargs):
+    """Save UserProfile when user is saved"""
     try:
-        instance.profile.save()
+        if hasattr(instance, 'profile'):
+            instance.profile.save()
     except UserProfile.DoesNotExist:
-        UserProfile.objects.create(user=instance)
+        # Create profile if it doesn't exist
+        UserProfile.objects.get_or_create(user=instance)
