@@ -1,31 +1,90 @@
 import React from 'react';
-import { useAppContext } from '../../context/AppContext';
-import ProductCard from './ProductCard';
-import { ChevronLeft, ChevronRight } from 'lucide-react';
+import { useTheme } from '../../context/ThemeContext';
+import { useNavigate } from 'react-router-dom';
+import { ChevronRight, Sparkles } from 'lucide-react';
+import ProductCard from './ProductCard'; // Make sure this import is correct
 
 const RecommendationsSection = () => {
-  const { recommendations } = useAppContext();
+  const { theme } = useTheme();
+  const navigate = useNavigate();
+
+  // Theme-based classes
+  const sectionClasses = theme === 'dark'
+    ? 'lg:col-span-7 bg-black border-gray-900'
+    : 'lg:col-span-7 bg-white border-gray-200';
+
+  const textPrimaryClasses = theme === 'dark'
+    ? 'text-white'
+    : 'text-gray-900';
+
+  const textSecondaryClasses = theme === 'dark'
+    ? 'text-gray-400'
+    : 'text-gray-500';
+
+  const linkClasses = theme === 'dark'
+    ? 'text-indigo-400 hover:text-indigo-300'
+    : 'text-indigo-600 hover:text-indigo-700';
+
+  // Mock recommendations data from your context
+  const recommendations = [
+    {
+      id: 1,
+      name: 'Bose QC45',
+      price: 279.00,
+      originalPrice: 329.00,
+      rating: 4.8,
+      reviews: '2k',
+      match: 98,
+      icon: 'headphones'
+    },
+    {
+      id: 2,
+      name: 'Sennheiser M4',
+      price: 299.95,
+      rating: 4.6,
+      reviews: 856,
+      match: 92,
+      badge: 'Best price',
+      icon: 'smartphone'
+    },
+    {
+      id: 3,
+      name: 'AirPods Max',
+      price: 479.00,
+      rating: 4.7,
+      reviews: '5k',
+      badge: 'Price drop',
+      tag: 'New',
+      icon: 'video'
+    }
+  ];
+
+  const handleViewAll = () => {
+    navigate('/recommendations');
+  };
 
   return (
-    <div className="lg:col-span-8 bg-white rounded-2xl p-6 shadow-sm border border-gray-100 flex flex-col">
+    <div className={`rounded-xl p-6 border shadow-xl transition-colors ${sectionClasses}`}>
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h3 className="font-bold text-lg text-gray-900">Recommended for You</h3>
-          <p className="text-gray-500 text-sm">
+          <h3 className={`font-semibold flex items-center gap-2 ${textPrimaryClasses}`}>
+            Recommended for You
+            <Sparkles className="w-4 h-4 text-yellow-500" />
+          </h3>
+          <p className={`text-sm ${textSecondaryClasses}`}>
             Based on your recent search for "Noise Cancelling Headphones"
           </p>
         </div>
-        <div className="flex gap-2">
-          <button className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-            <ChevronLeft className="w-5 h-5" />
-          </button>
-          <button className="p-2 rounded-full hover:bg-gray-100 text-gray-400 hover:text-gray-600">
-            <ChevronRight className="w-5 h-5" />
-          </button>
-        </div>
+        <button 
+          onClick={handleViewAll}
+          className={`flex items-center gap-1 text-sm font-medium ${linkClasses}`}
+        >
+          View All
+          <ChevronRight className="w-4 h-4" />
+        </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4 flex-1">
+      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
         {recommendations.map((product) => (
           <ProductCard key={product.id} product={product} />
         ))}

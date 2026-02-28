@@ -1,157 +1,193 @@
-import { useState, useEffect, useCallback } from 'react';
-import { initialProducts } from '../data/productsData';
-import { useAppContext } from '../context/AppContext';
+// import { useState, useEffect, useCallback } from 'react';
+// import { initialProducts } from '../data/productsData';
+// import { useAppContext } from '../context/AppContext';
+// import { productService } from '../services/productService';
 
-const useProducts = () => {
-  const { addToWatchlist, removeFromWatchlist, isInWatchlist, watchlist } = useAppContext();
-  const [products, setProducts] = useState(initialProducts);
-  const [activeCategory, setActiveCategory] = useState('All');
-  const [showModal, setShowModal] = useState(false);
+// const useProducts = () => {
+//   const { addToWatchlist, removeFromWatchlist, isInWatchlist, watchlist } = useAppContext();
+//   const [products, setProducts] = useState(initialProducts);
+//   const [activeCategory, setActiveCategory] = useState('All');
+//   const [showModal, setShowModal] = useState(false);
+//   const [searchResults, setSearchResults] = useState([]);
+//   const [isSearching, setIsSearching] = useState(false);
 
-  // Sync products wishlisted status with watchlist whenever watchlist changes
-  useEffect(() => {
-    console.log('🔄 Syncing products with watchlist...');
-    setProducts(prev => 
-      prev.map(product => {
-        const inWatchlist = isInWatchlist(product.id);
-        // Only update if status changed to avoid unnecessary re-renders
-        if (product.wishlisted !== inWatchlist) {
-          console.log(`📝 Syncing product ${product.id} (${product.name}): wishlisted ${product.wishlisted} → ${inWatchlist}`);
-          return { ...product, wishlisted: inWatchlist };
-        }
-        return product;
-      })
-    );
-  }, [watchlist, isInWatchlist]); // Re-run when watchlist changes
+//   // Sync products with watchlist
+//   useEffect(() => {
+//     setProducts(prev => 
+//       prev.map(product => {
+//         const inWatchlist = isInWatchlist(product.id);
+//         if (product.wishlisted !== inWatchlist) {
+//           return { ...product, wishlisted: inWatchlist };
+//         }
+//         return product;
+//       })
+//     );
+//   }, [watchlist, isInWatchlist]);
 
-  // Log initial products
-  useEffect(() => {
-    console.log('📦 Initial products loaded:', products.length);
-  }, []);
+//   // Search products by name
+//   const searchProducts = useCallback(async (query) => {
+//     if (!query.trim()) {
+//       setSearchResults([]);
+//       return [];
+//     }
 
-  const filteredProducts =
-    activeCategory === 'All'
-      ? products
-      : products.filter((p) => p.category === activeCategory);
+//     setIsSearching(true);
+//     try {
+//       // First search in local products
+//       const localResults = products.filter(product =>
+//         product.name.toLowerCase().includes(query.toLowerCase()) ||
+//         product.category?.toLowerCase().includes(query.toLowerCase()) ||
+//         product.store?.toLowerCase().includes(query.toLowerCase())
+//       );
 
-  const toggleWishlist = useCallback((id) => {
-    // Find the product
-    const product = products.find(p => p.id === id);
-    
-    if (!product) {
-      console.log('❌ Product not found:', id);
-      return;
-    }
+//       // Then try API search
+//       try {
+//         const apiResults = await productService.searchProducts(query);
+//         // Merge and deduplicate results
+//         const mergedResults = [...localResults, ...apiResults];
+//         const uniqueResults = Array.from(new Map(mergedResults.map(p => [p.id, p])).values());
+//         setSearchResults(uniqueResults);
+//         return uniqueResults;
+//       } catch (error) {
+//         // If API fails, return local results only
+//         setSearchResults(localResults);
+//         return localResults;
+//       }
+//     } finally {
+//       setIsSearching(false);
+//     }
+//   }, [products]);
 
-    console.log('🔄 Toggling wishlist for:', product.name, 'Current status:', product.wishlisted);
+//   // Search by image
+//   const searchByImage = useCallback(async (imageFile) => {
+//     setIsSearching(true);
+//     try {
+//       const results = await productService.searchByImage(imageFile);
+//       setSearchResults(results);
+//       return results;
+//     } catch (error) {
+//       console.error('Image search failed:', error);
+//       throw error;
+//     } finally {
+//       setIsSearching(false);
+//     }
+//   }, []);
 
-    // Optimistically update UI
-    setProducts((prev) =>
-      prev.map((p) =>
-        p.id === id ? { ...p, wishlisted: !p.wishlisted } : p
-      )
-    );
-
-    // Update watchlist in context
-    if (product.wishlisted) {
-      // Currently wishlisted, so remove from watchlist
-      console.log('➖ Removing from watchlist:', product.name);
-      removeFromWatchlist(id);
-    } else {
-      // Not wishlisted, so add to watchlist
-      console.log('➕ Adding to watchlist:', product.name);
+//   // Search by URL
+//   const searchByUrl = useCallback(async (url) => {
+//     setIsSearching(true);
+//     try {
+//       // First try to parse locally
+//       const parsed = productService.parseProductUrl(url);
       
-      // Ensure product has all required fields before adding
-      const productToAdd = {
-        ...product,
-        // Ensure these fields exist
-        store: product.store || 'Unknown',
-        currentPrice: product.currentPrice || product.price || 0,
-        originalPrice: product.originalPrice || null,
-        status: product.status || 'In Stock',
-        icon: product.icon || 'monitor',
-        storeInitial: product.storeInitial || (product.store ? product.store.charAt(0).toUpperCase() : '?'),
-        storeColor: product.storeColor || getDefaultStoreColor(product.store)
-      };
+//       if (parsed) {
+//         // Try to find in local products
+//         const localProduct = products.find(p => 
+//           p.url?.includes(parsed.productId) || 
+//           p.store?.toLowerCase() === parsed.store
+//         );
+        
+//         if (localProduct) {
+//           setSearchResults([localProduct]);
+//           return [localProduct];
+//         }
+//       }
+
+//       // If not found locally, try API
+//       const apiResults = await productService.searchByUrl(url);
+//       setSearchResults(apiResults);
+//       return apiResults;
+//     } catch (error) {
+//       console.error('URL search failed:', error);
+//       throw error;
+//     } finally {
+//       setIsSearching(false);
+//     }
+//   }, [products]);
+
+//   const toggleWishlist = useCallback((id) => {
+//     const product = products.find(p => p.id === id);
+    
+//     if (!product) return;
+
+//     setProducts((prev) =>
+//       prev.map((p) =>
+//         p.id === id ? { ...p, wishlisted: !p.wishlisted } : p
+//       )
+//     );
+
+//     if (product.wishlisted) {
+//       removeFromWatchlist(id);
+//     } else {
+//       const productToAdd = {
+//         ...product,
+//         store: product.store || 'Unknown',
+//         currentPrice: product.currentPrice || product.price || 0,
+//         originalPrice: product.originalPrice || null,
+//         status: product.status || 'In Stock',
+//         icon: product.icon || 'monitor',
+//         storeInitial: product.storeInitial || (product.store ? product.store.charAt(0).toUpperCase() : '?'),
+//         storeColor: product.storeColor || getDefaultStoreColor(product.store)
+//       };
       
-      addToWatchlist(productToAdd);
-    }
-  }, [products, addToWatchlist, removeFromWatchlist]);
+//       addToWatchlist(productToAdd);
+//     }
+//   }, [products, addToWatchlist, removeFromWatchlist]);
 
-  // Helper function for default store colors
-  const getDefaultStoreColor = (store) => {
-    const storeColors = {
-      'Best Buy': { bg: 'bg-blue-100', text: 'text-blue-700' },
-      'Amazon': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
-      'B&H Photo': { bg: 'bg-red-100', text: 'text-red-700' },
-      'Walmart': { bg: 'bg-blue-600', text: 'text-white' }
-    };
-    return storeColors[store] || { bg: 'bg-gray-100', text: 'text-gray-700' };
-  };
+//   const getDefaultStoreColor = (store) => {
+//     const storeColors = {
+//       'Best Buy': { bg: 'bg-blue-100', text: 'text-blue-700' },
+//       'Amazon': { bg: 'bg-yellow-100', text: 'text-yellow-700' },
+//       'B&H Photo': { bg: 'bg-red-100', text: 'text-red-700' },
+//       'Walmart': { bg: 'bg-blue-600', text: 'text-white' }
+//     };
+//     return storeColors[store] || { bg: 'bg-gray-100', text: 'text-gray-700' };
+//   };
 
-  const addProduct = (newProduct) => {
-    const productWithDefaults = {
-      ...newProduct,
-      id: Date.now(),
-      wishlisted: false,
-      storeInitial: newProduct.store.charAt(0).toUpperCase(),
-      storeColor: getDefaultStoreColor(newProduct.store),
-      status: newProduct.status || 'In Stock',
-      icon: newProduct.icon || 'monitor',
-    };
+//   const addProduct = (newProduct) => {
+//     const productWithDefaults = {
+//       ...newProduct,
+//       id: Date.now(),
+//       wishlisted: false,
+//       storeInitial: newProduct.store.charAt(0).toUpperCase(),
+//       storeColor: getDefaultStoreColor(newProduct.store),
+//       status: newProduct.status || 'In Stock',
+//       icon: newProduct.icon || 'monitor',
+//     };
     
-    setProducts((prev) => [...prev, productWithDefaults]);
-    setShowModal(false);
-    console.log('✅ New product added:', productWithDefaults);
-  };
+//     setProducts((prev) => [...prev, productWithDefaults]);
+//     setShowModal(false);
+//   };
 
-  const removeProduct = (id) => {
-    const product = products.find(p => p.id === id);
-    console.log('🗑️ Removing product:', product?.name);
-    
-    setProducts((prev) => prev.filter((p) => p.id !== id));
-    // Also remove from watchlist if present
-    if (product?.wishlisted) {
-      removeFromWatchlist(id);
-    }
-  };
+//   const removeProduct = (id) => {
+//     const product = products.find(p => p.id === id);
+//     setProducts((prev) => prev.filter((p) => p.id !== id));
+//     if (product?.wishlisted) {
+//       removeFromWatchlist(id);
+//     }
+//   };
 
-  // Debug function to check sync status
-  const checkSyncStatus = useCallback(() => {
-    console.log('🔍 Checking sync status...');
-    products.forEach(product => {
-      const inWatchlist = isInWatchlist(product.id);
-      if (product.wishlisted !== inWatchlist) {
-        console.warn(`⚠️ Sync mismatch for ${product.name}: product.wishlisted=${product.wishlisted}, isInWatchlist=${inWatchlist}`);
-      }
-    });
-    console.log('✅ Sync check complete');
-  }, [products, isInWatchlist]);
+//   const filteredProducts =
+//     activeCategory === 'All'
+//       ? products
+//       : products.filter((p) => p.category === activeCategory);
 
-  // Expose debug function in development
-  useEffect(() => {
-    if (process.env.NODE_ENV === 'development') {
-      window.__checkProductsSync = checkSyncStatus;
-    }
-    return () => {
-      if (process.env.NODE_ENV === 'development') {
-        delete window.__checkProductsSync;
-      }
-    };
-  }, [checkSyncStatus]);
+//   return {
+//     products,
+//     filteredProducts,
+//     searchResults,
+//     isSearching,
+//     activeCategory,
+//     setActiveCategory,
+//     showModal,
+//     setShowModal,
+//     toggleWishlist,
+//     addProduct,
+//     removeProduct,
+//     searchProducts,
+//     searchByImage,
+//     searchByUrl,
+//   };
+// };
 
-  return {
-    products,
-    filteredProducts,
-    activeCategory,
-    setActiveCategory,
-    showModal,
-    setShowModal,
-    toggleWishlist,
-    addProduct,
-    removeProduct,
-    checkSyncStatus, // Expose for debugging
-  };
-};
-
-export default useProducts;
+// export default useProducts;

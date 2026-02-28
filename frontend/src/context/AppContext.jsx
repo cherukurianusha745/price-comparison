@@ -1,5 +1,4 @@
 import React, { createContext, useContext, useState, useEffect } from 'react';
-import { initialProducts } from '../data/productsData';
 
 const AppContext = createContext();
 
@@ -12,15 +11,14 @@ export const useAppContext = () => {
 };
 
 export const AppProvider = ({ children }) => {
-  const [products, setProducts] = useState(initialProducts);
-  const [filteredProducts, setFilteredProducts] = useState(initialProducts);
   const [watchlist, setWatchlist] = useState([]);
   const [cartItems, setCartItems] = useState([]);
   const [orders, setOrders] = useState([]);
   const [alerts, setAlerts] = useState([]);
   const [recommendations, setRecommendations] = useState([]);
   const [searchQuery, setSearchQuery] = useState('');
-  const [stats, setStats] = useState({
+  // Remove the unused setStats or use underscore prefix to indicate it's intentionally unused
+  const [stats] = useState({  // Removed setStats since it's not used
     activeTrackers: 124,
     totalSavings: 2200.50,
     pendingAlerts: 8,
@@ -72,36 +70,8 @@ export const AppProvider = ({ children }) => {
     loadInitialData();
   }, []);
 
-  // Filter products when search query changes
-  useEffect(() => {
-    if (searchQuery.trim() === '') {
-      setFilteredProducts(products);
-    } else {
-      const query = searchQuery.toLowerCase();
-      const filtered = products.filter(product => 
-        product.name.toLowerCase().includes(query) ||
-        product.category.toLowerCase().includes(query) ||
-        product.store.toLowerCase().includes(query)
-      );
-      setFilteredProducts(filtered);
-    }
-  }, [searchQuery, products]);
-
-  // Save to localStorage whenever data changes
-  useEffect(() => {
-    localStorage.setItem('watchlist', JSON.stringify(watchlist));
-  }, [watchlist]);
-
-  useEffect(() => {
-    localStorage.setItem('cart', JSON.stringify(cartItems));
-  }, [cartItems]);
-
-  useEffect(() => {
-    localStorage.setItem('orders', JSON.stringify(orders));
-  }, [orders]);
-
   const loadInitialData = async () => {
-    // Simulate API calls
+    // Simulate API calls for recommendations
     setRecommendations([
       {
         id: 1,
@@ -109,7 +79,7 @@ export const AppProvider = ({ children }) => {
         price: 279.00,
         originalPrice: 329.00,
         rating: 4.8,
-        reviews: 2000,
+        reviews: '2k',
         match: 98,
         icon: 'headphones'
       },
@@ -128,7 +98,7 @@ export const AppProvider = ({ children }) => {
         name: 'AirPods Max',
         price: 479.00,
         rating: 4.7,
-        reviews: 5000,
+        reviews: '5k',
         badge: 'Price drop',
         tag: 'New',
         icon: 'video'
@@ -169,31 +139,31 @@ export const AppProvider = ({ children }) => {
   };
 
   // Watchlist functions
-  const addToWatchlist = (product) => {
-    console.log('➕ Adding to watchlist:', product);
+  const addToWatchlist = (item) => {
+    console.log('➕ Adding to watchlist:', item);
     
     setWatchlist(prev => {
-      const exists = prev.some(item => item.id === product.id);
+      const exists = prev.some(i => i.id === item.id);
       if (exists) {
-        console.log('⚠️ Product already in watchlist');
+        console.log('⚠️ Item already in watchlist');
         return prev;
       }
       
       const watchlistItem = {
-        id: product.id,
-        name: product.name,
-        store: product.store || 'Unknown',
-        currentPrice: product.currentPrice || product.price || 0,
-        originalPrice: product.originalPrice || null,
-        status: product.status === 'Low Stock' ? 'On Sale' : (product.status || 'Watching'),
+        id: item.id,
+        name: item.name,
+        store: item.store || 'Unknown',
+        currentPrice: item.currentPrice || item.price || 0,
+        originalPrice: item.originalPrice || null,
+        status: item.status === 'Low Stock' ? 'On Sale' : (item.status || 'Watching'),
         addedDate: new Date().toLocaleDateString('en-US', { 
           year: 'numeric', 
           month: 'short', 
           day: 'numeric' 
         }),
-        icon: product.icon || 'monitor',
-        storeInitial: product.storeInitial || (product.store ? product.store.charAt(0).toUpperCase() : '?'),
-        storeColor: product.storeColor || getStoreColor(product.store)
+        icon: item.icon || 'monitor',
+        storeInitial: item.storeInitial || (item.store ? item.store.charAt(0).toUpperCase() : '?'),
+        storeColor: item.storeColor || getStoreColor(item.store)
       };
       
       console.log('✅ Added to watchlist:', watchlistItem);
@@ -201,51 +171,51 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const removeFromWatchlist = (productId) => {
-    console.log('➖ Removing from watchlist:', productId);
+  const removeFromWatchlist = (itemId) => {
+    console.log('➖ Removing from watchlist:', itemId);
     setWatchlist(prev => {
-      const newWatchlist = prev.filter(p => p.id !== productId);
+      const newWatchlist = prev.filter(item => item.id !== itemId);
       console.log('✅ Removed, new watchlist:', newWatchlist);
       return newWatchlist;
     });
   };
 
-  const isInWatchlist = (productId) => {
-    const inList = watchlist.some(item => item.id === productId);
+  const isInWatchlist = (itemId) => {
+    const inList = watchlist.some(item => item.id === itemId);
     return inList;
   };
 
   // Cart functions
-  const addToCart = (product, quantity = 1) => {
-    console.log('🛒 Adding to cart:', product, 'Quantity:', quantity);
+  const addToCart = (item, quantity = 1) => {
+    console.log('🛒 Adding to cart:', item, 'Quantity:', quantity);
     
     setCartItems(prev => {
-      // Check if product already exists in cart
-      const existingItem = prev.find(item => item.id === product.id);
+      // Check if item already exists in cart
+      const existingItem = prev.find(i => i.id === item.id);
       
       if (existingItem) {
         // Update quantity if already in cart
-        const updatedCart = prev.map(item =>
-          item.id === product.id
-            ? { ...item, quantity: item.quantity + quantity }
-            : item
+        const updatedCart = prev.map(i =>
+          i.id === item.id
+            ? { ...i, quantity: i.quantity + quantity }
+            : i
         );
         console.log('✅ Updated cart quantity:', updatedCart);
         return updatedCart;
       } else {
         // Add new item to cart
         const cartItem = {
-          id: product.id,
-          name: product.name,
-          store: product.store || 'Unknown',
-          currentPrice: product.currentPrice || product.price || 0,
-          originalPrice: product.originalPrice || null,
+          id: item.id,
+          name: item.name,
+          store: item.store || 'Unknown',
+          currentPrice: item.currentPrice || item.price || 0,
+          originalPrice: item.originalPrice || null,
           quantity: quantity,
-          image: product.icon || 'monitor',
-          storeColor: product.storeColor || getStoreColor(product.store),
-          storeInitial: product.storeInitial || (product.store ? product.store.charAt(0).toUpperCase() : '?'),
-          inStock: product.status !== 'Out of Stock',
-          status: product.status,
+          image: item.icon || 'monitor',
+          storeColor: item.storeColor || getStoreColor(item.store),
+          storeInitial: item.storeInitial || (item.store ? item.store.charAt(0).toUpperCase() : '?'),
+          inStock: item.status !== 'Out of Stock',
+          status: item.status,
           addedDate: new Date().toISOString()
         };
         
@@ -255,24 +225,24 @@ export const AppProvider = ({ children }) => {
     });
   };
 
-  const removeFromCart = (productId) => {
-    console.log('➖ Removing from cart:', productId);
+  const removeFromCart = (itemId) => {
+    console.log('➖ Removing from cart:', itemId);
     setCartItems(prev => {
-      const newCart = prev.filter(item => item.id !== productId);
+      const newCart = prev.filter(item => item.id !== itemId);
       console.log('✅ Removed from cart, new cart:', newCart);
       return newCart;
     });
   };
 
-  const updateCartQuantity = (productId, newQuantity) => {
+  const updateCartQuantity = (itemId, newQuantity) => {
     if (newQuantity < 1) {
-      removeFromCart(productId);
+      removeFromCart(itemId);
       return;
     }
     
     setCartItems(prev =>
       prev.map(item =>
-        item.id === productId
+        item.id === itemId
           ? { ...item, quantity: newQuantity }
           : item
       )
@@ -295,12 +265,12 @@ export const AppProvider = ({ children }) => {
     return cartItems.reduce((sum, item) => sum + item.quantity, 0);
   };
 
-  const isInCart = (productId) => {
-    return cartItems.some(item => item.id === productId);
+  const isInCart = (itemId) => {
+    return cartItems.some(item => item.id === itemId);
   };
 
-  const getCartQuantity = (productId) => {
-    const item = cartItems.find(item => item.id === productId);
+  const getCartQuantity = (itemId) => {
+    const item = cartItems.find(item => item.id === itemId);
     return item ? item.quantity : 0;
   };
 
@@ -353,23 +323,23 @@ export const AppProvider = ({ children }) => {
     return newOrder;
   };
 
-  const buyNow = (product) => {
-    console.log('⚡ Buy Now:', product);
+  const buyNow = (item) => {
+    console.log('⚡ Buy Now:', item);
     
     // Create order item with all required properties
     const orderItem = formatOrderItem({
-      id: product.id,
-      name: product.name,
-      store: product.store || 'Unknown',
-      currentPrice: product.currentPrice || product.price || 0,
-      originalPrice: product.originalPrice || null,
+      id: item.id,
+      name: item.name,
+      store: item.store || 'Unknown',
+      currentPrice: item.currentPrice || item.price || 0,
+      originalPrice: item.originalPrice || null,
       quantity: 1,
-      image: product.icon || 'monitor',
-      icon: product.icon,
-      storeColor: product.storeColor,
-      storeInitial: product.storeInitial,
-      status: product.status || 'Delivered',
-      inStock: product.status !== 'Out of Stock'
+      image: item.icon || 'monitor',
+      icon: item.icon,
+      storeColor: item.storeColor,
+      storeInitial: item.storeInitial,
+      status: item.status || 'Delivered',
+      inStock: item.status !== 'Out of Stock'
     });
     
     const orderTotal = orderItem.currentPrice;
@@ -450,8 +420,6 @@ export const AppProvider = ({ children }) => {
   };
 
   const value = {
-    products,
-    filteredProducts,
     watchlist,
     cartItems,
     orders,
@@ -483,7 +451,6 @@ export const AppProvider = ({ children }) => {
     getTotalSpent,
     getTotalSaved,
     // Other
-    setProducts,
     setAlerts,
     addTestItem
   };

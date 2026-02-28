@@ -1,28 +1,68 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { useAppContext } from '../context/AppContext';
-import ProductCard from '../components/Products/ProductCard';
+import ProductCard from '../components/Recommendations/ProductCard';
 import useProducts from '../hooks/useProducts';
-import { Search, X } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
+import { Search, X, Image as ImageIcon, Link as LinkIcon, Loader } from 'lucide-react';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SearchResults = () => {
   const { filteredProducts, searchQuery, setSearchQuery } = useAppContext();
   const { toggleWishlist, removeProduct } = useProducts();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchType, setSearchType] = useState('text'); // 'text', 'url', 'image'
+  const [imageResults, setImageResults] = useState([]);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if we have image search results from navigation state
+    if (location.state?.imageResults) {
+      setImageResults(location.state.imageResults);
+      setSearchType('image');
+      setLoading(false);
+    } else if (location.state?.urlResults) {
+      setSearchType('url');
+      setLoading(false);
+    } else {
+      setSearchType('text');
+    }
+  }, [location.state]);
 
   const handleClearSearch = () => {
     setSearchQuery('');
-    navigate('/dashboard'); // Navigate back to dashboard after clearing
+    navigate('/dashboard');
   };
+
+  const getSearchTypeIcon = () => {
+    switch(searchType) {
+      case 'url': return <LinkIcon className="w-5 h-5 text-blue-500" />;
+      case 'image': return <ImageIcon className="w-5 h-5 text-green-500" />;
+      default: return <Search className="w-5 h-5 text-gray-400" />;
+    }
+  };
+
+  const getSearchTypeText = () => {
+    switch(searchType) {
+      case 'url': return 'URL Search';
+      case 'image': return 'Visual Search';
+      default: return 'Text Search';
+    }
+  };
+
+  const productsToShow = searchType === 'image' ? imageResults : filteredProducts;
 
   return (
     <div className="p-8 space-y-6">
       {/* Header */}
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-gray-900">Search Results</h1>
+          <div className="flex items-center gap-2">
+            {getSearchTypeIcon()}
+            <h1 className="text-2xl font-bold text-gray-900">{getSearchTypeText()} Results</h1>
+          </div>
           <p className="text-gray-500 text-sm mt-1">
-            {filteredProducts.length} {filteredProducts.length === 1 ? 'product' : 'products'} found for "{searchQuery}"
+            {productsToShow.length} {productsToShow.length === 1 ? 'product' : 'products'} found
+            {searchType === 'text' && ` for "${searchQuery}"`}
           </p>
         </div>
         <button
@@ -34,30 +74,44 @@ const SearchResults = () => {
         </button>
       </div>
 
-      {/* Search Bar (optional - to refine search) */}
-      <div className="relative max-w-xl">
-        <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-          <Search className="h-5 w-5 text-gray-400" />
-        </span>
-        <input
-          type="text"
-          value={searchQuery}
-          onChange={(e) => setSearchQuery(e.target.value)}
-          className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
-          placeholder="Refine your search..."
-          autoFocus
-        />
-      </div>
+      {/* Loading State */}
+      {loading && (
+        <div className="flex items-center justify-center py-12">
+          <Loader className="w-8 h-8 animate-spin text-indigo-600" />
+          <span className="ml-3 text-gray-600">Searching...</span>
+        </div>
+      )}
+
+      {/* Search Bar for Text Search */}
+      {searchType === 'text' && (
+        <div className="relative max-w-xl">
+          <span className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
+            <Search className="h-5 w-5 text-gray-400" />
+          </span>
+          <input
+            type="text"
+            value={searchQuery}
+            onChange={(e) => setSearchQuery(e.target.value)}
+            className="w-full bg-white border border-gray-200 text-gray-900 text-sm rounded-lg pl-10 pr-4 py-3 focus:outline-none focus:ring-2 focus:ring-indigo-500"
+            placeholder="Refine your search..."
+            autoFocus
+          />
+        </div>
+      )}
 
       {/* Results Grid */}
-      {filteredProducts.length === 0 ? (
+      {productsToShow.length === 0 ? (
         <div className="bg-white rounded-2xl border border-gray-100 shadow-sm p-16 flex flex-col items-center text-center">
           <div className="w-20 h-20 bg-gray-100 rounded-full flex items-center justify-center mb-6">
             <Search className="w-10 h-10 text-gray-400" />
           </div>
           <h3 className="text-xl font-semibold text-gray-900 mb-2">No products found</h3>
           <p className="text-gray-500 mb-6">
-            We couldn't find any products matching "{searchQuery}"
+            {searchType === 'url' 
+              ? "Couldn't find product from the provided URL"
+              : searchType === 'image'
+              ? "No similar products found for this image"
+              : `We couldn't find any products matching "${searchQuery}"`}
           </p>
           <div className="flex gap-4">
             <button
@@ -104,7 +158,7 @@ const SearchResults = () => {
 
           {/* Products Grid */}
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
-            {filteredProducts.map((product) => (
+            {productsToShow.map((product) => (
               <ProductCard
                 key={product.id}
                 product={product}
@@ -116,7 +170,7 @@ const SearchResults = () => {
 
           {/* Results Summary */}
           <div className="text-center text-sm text-gray-500 pt-4">
-            Showing {filteredProducts.length} {filteredProducts.length === 1 ? 'result' : 'results'}
+            Showing {productsToShow.length} {productsToShow.length === 1 ? 'result' : 'results'}
           </div>
         </>
       )}
